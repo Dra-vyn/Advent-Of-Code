@@ -18,5 +18,10 @@ Deno.test("input : 1,1,1,4,99,5,6,0,99", () =>
 
 Deno.test("main test", () => {
   const input = Deno.readTextFileSync("Data/input.txt");
-  assertEquals(allfns.alarmAssist(input), '3706713')
+  assertEquals(allfns.alarmAssist(input, 12, 2), '3706713')
+});
+
+Deno.test("main test part 2", () => {
+  const input = Deno.readTextFileSync("Data/input.txt");
+  assertEquals(allfns.fetchNounAndVerb(input), 8609)
 });

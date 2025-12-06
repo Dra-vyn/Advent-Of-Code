@@ -49,7 +49,8 @@ Deno.test("sample test 2 - Part 2", () => {
   assertEquals(allfns.part2(input), 410);
 });
 
-Deno.test("Main test - Part 1", () => {
+Deno.test("Main test - Part 2", () => {
   const input = Deno.readTextFileSync("Data/input.txt");
   assertEquals(allfns.part2(input), 20386);
 });
+

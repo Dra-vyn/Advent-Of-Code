@@ -20,4 +20,3 @@ Deno.test('main test Part 2', () => {
   const input = Deno.readTextFileSync("data/input.txt");
   assertEquals(part2(input), 352)
 });
-

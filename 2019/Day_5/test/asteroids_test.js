@@ -1,21 +1,21 @@
 import { assertEquals } from "@std/assert";
-import * as allfns from "../src/asteroids.js";
+import { test } from "../src/asteroids.js";
 
-// Deno.test('main test 1', () => {
+// Deno.test.only('main test 1', () => {
 //   const input = Deno.readTextFileSync("Data/input.txt");
-//   assertEquals(allfns.evaluateIntCode(input),9775037)
+//   assertEquals(test(input),9775037)
 // });
 
 Deno.test("input : 1,0,0,0,99", () =>
-  assertEquals(allfns.evaluateIntCode("1,0,0,0,99"), "2,0,0,0,99"));
+  assertEquals(test("1,0,0,0,99"), "2,0,0,0,99"));
 
 Deno.test("input : 2,4,4,5,99,0", () =>
-  assertEquals(allfns.evaluateIntCode("2,4,4,5,99,0"), "2,4,4,5,99,9801"));
+  assertEquals(test("2,4,4,5,99,0"), "2,4,4,5,99,9801"));
 
 Deno.test("input : 1101,100,-1,4,0", () =>
-  assertEquals(allfns.evaluateIntCode("1101,100,-1,4,0"), "1101,100,-1,4,99"));
+  assertEquals(test("1101,100,-1,4,0"), "1101,100,-1,4,99"));
 
 // Deno.test('main test 2', () => {
 //   const input = Deno.readTextFileSync("Data/input.txt");
-//   assertEquals(allfns.evaluateIntCode(input),15586959)
+//   assertEquals(test(input),15586959)
 // });

@@ -1,103 +1,141 @@
-const add = (x, y) => x + y;
-
-const mul = (x, y) => x * y;
-
-const lessThan = (int1, int2) => int1 < int2 ? 1 : 0;
-
-const equals = (int1, int2) => int1 === int2 ? 1 : 0;
-
-const utils = (index, int1, int2, code, operation) => {
-  const outputIndex = +code[index + 3];
-  code[outputIndex] = operation(int1, int2);
-  return index + 4;
-}
-
-const addOperation = (index, int1, int2, code) =>
-  utils(index, int1, int2, code, add);
-
-const mulOperation = (index, int1, int2, code) =>
-  utils(index, int1, int2, code, mul);
-
-const addInput = (index, int1, int2, code) => {
-  code[+code[index + 1]] = prompt('enter num');
-  return index + 2;
+const add = (computer, input1, input2, output) => {
+  computer.program[output] = input1 + input2;
+  computer.currentIndex += 4;
+  return computer;
 };
 
-const print = (index, int1) => {
-  console.log(int1);
-  return index + 2;
-}
-
-const jumpIfTrue = (index, int1, int2) =>
-  int1 !== 0 ? int2 : index + 3;
-
-const jumpIfFalse = (index, int1, int2) =>
-  int1 === 0 ? int2 : index + 3;
-
-const lessThanOperation = (index, int1, int2, code) =>
-  utils(index, int1, int2, code, lessThan);
-
-const equalsOperation = (index, int1, int2, code) =>
-  utils(index, int1, int2, code, equals);
-
-const opcodes = {
-  1: addOperation, 2: mulOperation, 3: addInput, 4: print, 5: jumpIfTrue,
-  6: jumpIfFalse, 7: lessThanOperation, 8: equalsOperation, 99: "halt"
+const mul = (computer, input1, input2, output) => {
+  computer.program[output] = input1 * input2;
+  computer.currentIndex += 4;
+  return computer;
 };
 
-const immediateValue = (code, i, addOn) => +code[i + addOn];
+const takeInput = (computer) => {
+  const outputPosition = computer.program[computer.currentIndex + 1];
+  computer.program[outputPosition] = parseInt(prompt("enter num"));
+  computer.currentIndex += 2;
+  return computer;
+};
 
-const positionValue = (code, i, addOn) => +code[+code[i + addOn]];
+const print = (computer, input1) => {
+  console.log(input1);
+  computer.currentIndex += 2;
+  return computer;
+};
 
-export const immediateMode = (code, i) =>
-  [immediateValue(code, i, 1), immediateValue(code, i, 2)];
+const jumpIfTrue = (computer, input1, input2) => {
+  computer.currentIndex = input1 !== 0 ? input2 : computer.currentIndex + 3;
+  return computer;
+};
 
-export const secondImmediate = (code, i) =>
-  [positionValue(code, i, 1), immediateValue(code, i, 2)];
+const jumpIfFalse = (computer, input1, input2) => {
+  computer.currentIndex = input1 === 0 ? input2 : computer.currentIndex + 3;
+  return computer;
+};
 
-export const firstImmediate = (code, i) =>
-  [immediateValue(code, i, 1), positionValue(code, i, 2)];
+const lessThan = (computer, input1, input2, output) => {
+  computer.program[output] = input1 < input2 ? 1 : 0;
+  computer.currentIndex += 4;
+  return computer;
+};
 
-export const normalMode = (code, i) =>
-  [positionValue(code, i, 1), positionValue(code, i, 2)];
+const equals = (computer, input1, input2, output) => {
+  computer.program[output] = input1 === input2 ? 1 : 0;
+  computer.currentIndex += 4;
+  return computer;
+};
+
+const OPCODES = {
+  1: add,
+  2: mul,
+  3: takeInput,
+  4: print,
+  5: jumpIfTrue,
+  6: jumpIfFalse,
+  7: lessThan,
+  8: equals,
+  99: "halt",
+};
+
+const parse = (input) => eval(`[${input}]`);
+
+const immediateMode = (input1, input2) => [input1, input2];
+
+const secondImmediate = (input1, input2, program) => [program[input1], input2];
+
+const firstImmediate = (input1, input2, program) => [input1, program[input2]];
+
+const normalMode = (
+  input1,
+  input2,
+  program,
+) => [program[input1], program[input2]];
 
 const modeType = {
-  0 : normalMode,
+  0: normalMode,
   100: firstImmediate,
   1000: secondImmediate,
   1100: immediateMode,
 };
 
-export const findMode = (code, index) => {
-  const key = Math.floor(+code[index] / 100) * 100;
-  return modeType[key](code, index);
-}
-
-export const executeInstruction = (code, opCode, index) => {
-  const [int1, int2] = findMode(code, index);
-  if (opCode === 'halt') return;
-  return opCode(index, int1, int2, code);
+export const findMode = (program, currentIndex, input1, input2) => {
+  const key = Math.floor(program[currentIndex] / 100) * 100;
+  return modeType[key](input1, input2, program);
 };
 
-export const evaluateOperation = (code, i) => {
-  const op = opcodes[+code[i] % 100];
+const createComputer = (program, overRides = []) => {
+  const modifiedProgram = program.slice();
+  overRides.forEach(([position, value]) => modifiedProgram[position] = value);
+  return {
+    program: modifiedProgram,
+    currentIndex: 0,
+    isHalted: false,
+  };
+};
 
-  if (op !== 'halt') {
-    i = executeInstruction(code, op, i);
+const executeOpCode = (computer, opCode) => {
+  const [input1, input2, output] = computer.program.slice(
+    computer.currentIndex + 1,
+    computer.currentIndex + 4,
+  );
+
+  const [int1, int2] = findMode(
+    computer.program,
+    computer.currentIndex,
+    input1,
+    input2,
+  );
+
+  return OPCODES[opCode](computer, int1, int2, output);
+};
+
+const stepForward = (computer) => {
+  const { program, currentIndex } = computer;
+  const opCode = program[currentIndex] % 100;
+
+  if (opCode === 99) {
+    computer.isHalted = true;
+    return computer;
+  } else {
+    executeOpCode(computer, opCode);
   }
 
-  return [op, i];
+  return computer;
 };
 
-export const evaluateIntCode = (intCode) => {
-  const code = intCode.split(",");
-  let { index, opCode } = { index: 0, opCode: '' };
-
-  while (opCode !== "halt") {
-    const [op, i] = evaluateOperation(code, index);
-    index = i;
-    opCode = op;
+const execute = (computer) => {
+  while (!computer.isHalted) {
+    stepForward(computer);
   }
-  
-  return code.join(",");
+
+  return computer;
 };
+
+const alarmAssist = (input, overRides) => {
+  const program = parse(input);
+  const computer = createComputer(program, overRides);
+  const currentState = execute(computer);
+  return currentState.program;
+};
+
+export const test = (input) => alarmAssist(input).join(",");

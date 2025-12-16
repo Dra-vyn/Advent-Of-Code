@@ -1,38 +1,72 @@
 const add = (x, y) => x + y;
 const mul = (x, y) => x * y;
 
-const opcodes = { 1: add, 2: mul, 99: "halt" };
+const OPCODES = { 1: add, 2: mul, 99: "halt" };
 
-export const processCode = (intCode) => {
-  const code = intCode.split(",");
-  let index = 0;
-  let opCode = "";
+const parse = (input) => eval(`[${input}]`);
 
-  while (opCode !== "halt") {
-    if (index % 4 === 0) opCode = opcodes[code[index]];
-    if (index % 2 === 0 && index % 4 !== 0) {
-      const int1 = +code[code[index - 1]];
-      const int2 = +code[code[index]];
-      const position = +code[index + 1];
-      code[position] = opCode(int1, int2);
-    }
-    index++;
+const createComputer = (program, overRides = []) => {
+  const modifiedProgram = program.slice();
+  overRides.forEach(([position, value]) => modifiedProgram[position] = value);
+  return {
+    program: modifiedProgram,
+    currentIndex: 0,
+    isHalted: false,
+  };
+};
+
+const addOrMul = (program, currentIndex) => {
+  const [input1, input2, output] = program.slice(
+    currentIndex + 1,
+    currentIndex + 4,
+  );
+
+  program[output] = OPCODES[program[currentIndex]](
+    program[input1],
+    program[input2],
+  );
+};
+
+const stepForward = (computer) => {
+  const { program, currentIndex } = computer;
+
+  if (program[currentIndex] === 99) {
+    computer.isHalted = true;
+    return computer;
   }
-  return code.join(",");
+
+  if ([1, 2].includes(program[currentIndex])) {
+    addOrMul(program, currentIndex);
+  }
+
+  computer.currentIndex += 4;
+  return computer;
 };
 
-export const alarmAssist = (intCode, x, y) => {
-  const code = intCode.split(",");
-  code[1] = x;
-  code[2] = y;
-  return processCode(code.join(",")).split(",")[0];
+const execute = (computer) => {
+  while (!computer.isHalted) {
+    stepForward(computer);
+  }
+
+  return computer;
 };
+
+export const alarmAssist = (input, overRides) => {
+  const program = parse(input);
+  const computer = createComputer(program, overRides);
+  const currentState = execute(computer);
+  return currentState.program;
+};
+
+export const test = (input) => alarmAssist(input).join(",");
+
+export const part1 = (input, overRides) => alarmAssist(input, overRides)[0];
 
 export const fetchNounAndVerb = (intCode) => {
   for (let noun = 100; noun > 0; noun--) {
     for (let verb = 0; verb < 100; verb++) {
-
-      const output = +alarmAssist(intCode, noun, verb);
+      const output = part1(intCode, [[1, noun], [2, verb]]);
+      
       if (output === 19690720) return 100 * noun + verb;
     }
   }

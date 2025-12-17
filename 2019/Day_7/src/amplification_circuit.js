@@ -1,79 +1,77 @@
-const add = (x, y) => x + y;
-
-const mul = (x, y) => x * y;
-
-const lessThan = (int1, int2) => int1 < int2 ? 1 : 0;
-
-const equals = (int1, int2) => int1 === int2 ? 1 : 0;
-
-const utils = (index, int1, int2, code, operation) => {
-  const outputIndex = +code[index + 3];
-  code[outputIndex] = operation(int1, int2);
-  return index + 4;
+const add = (computer, input1, input2, output) => {
+  computer.program[output] = input1 + input2;
+  computer.currentIndex += 4;
+  return computer;
 };
 
-const addOperation = (index, int1, int2, code) =>
-  utils(index, int1, int2, code, add);
-
-const mulOperation = (index, int1, int2, code) =>
-  utils(index, int1, int2, code, mul);
-
-const addInput = (index, int1, int2, code, count, phase, input) => {
-  code[+code[index + 1]] = count[0] === 0 ? phase : input;
-  count[0] += 1;
-  return index + 2;
+const mul = (computer, input1, input2, output) => {
+  computer.program[output] = input1 * input2;
+  computer.currentIndex += 4;
+  return computer;
 };
 
-const print = (index, int1, int2, code, count) => {
-  count[1] = int1;
-  return index + 2;
+const takeInput = (computer, input, phase) => {
+  const outputPosition = computer.program[computer.currentIndex + 1];
+  computer.program[outputPosition] = computer.iteration === 1 ? phase : input;
+  computer.iteration -= 1;
+  computer.currentIndex += 2;
+  return computer;
 };
 
-const jumpIfTrue = (index, int1, int2) => int1 !== 0 ? int2 : index + 3;
+const print = (computer, input1) => {
+  console.log(input1);
+  computer.output = input1;
+  computer.currentIndex += 2;
+  return computer;
+};
 
-const jumpIfFalse = (index, int1, int2) => int1 === 0 ? int2 : index + 3;
+const jumpIfTrue = (computer, input1, input2) => {
+  computer.currentIndex = input1 !== 0 ? input2 : computer.currentIndex + 3;
+  return computer;
+};
 
-const lessThanOperation = (index, int1, int2, code) =>
-  utils(index, int1, int2, code, lessThan);
+const jumpIfFalse = (computer, input1, input2) => {
+  computer.currentIndex = input1 === 0 ? input2 : computer.currentIndex + 3;
+  return computer;
+};
 
-const equalsOperation = (index, int1, int2, code) =>
-  utils(index, int1, int2, code, equals);
+const lessThan = (computer, input1, input2, output) => {
+  computer.program[output] = input1 < input2 ? 1 : 0;
+  computer.currentIndex += 4;
+  return computer;
+};
 
-const opcodes = {
-  1: addOperation,
-  2: mulOperation,
-  3: addInput,
+const equals = (computer, input1, input2, output) => {
+  computer.program[output] = input1 === input2 ? 1 : 0;
+  computer.currentIndex += 4;
+  return computer;
+};
+
+const OPCODES = {
+  1: add,
+  2: mul,
+  3: takeInput,
   4: print,
   5: jumpIfTrue,
   6: jumpIfFalse,
-  7: lessThanOperation,
-  8: equalsOperation,
+  7: lessThan,
+  8: equals,
   99: "halt",
 };
 
-const immediateValue = (code, i, addOn) => +code[i + addOn];
+const parse = (input) => eval(`[${input}]`);
 
-const positionValue = (code, i, addOn) => +code[+code[i + addOn]];
+const immediateMode = (input1, input2) => [input1, input2];
 
-export const immediateMode = (
-  code,
-  i,
-) => [immediateValue(code, i, 1), immediateValue(code, i, 2)];
+const secondImmediate = (input1, input2, program) => [program[input1], input2];
 
-export const secondImmediate = (
-  code,
-  i,
-) => [positionValue(code, i, 1), immediateValue(code, i, 2)];
+const firstImmediate = (input1, input2, program) => [input1, program[input2]];
 
-export const firstImmediate = (
-  code,
-  i,
-) => [immediateValue(code, i, 1), positionValue(code, i, 2)];
-
-export const normalMode = (
-  code,
-  i,
-) => [positionValue(code, i, 1), positionValue(code, i, 2)];
+const normalMode = (
+  input1,
+  input2,
+  program,
+) => [program[input1], program[input2]];
 
 const modeType = {
   0: normalMode,
@@ -82,46 +80,76 @@ const modeType = {
   1100: immediateMode,
 };
 
-export const findMode = (code, index) => {
-  const key = Math.floor(+code[index] / 100) * 100;
-  return modeType[key](code, index);
+export const findMode = (program, currentIndex, input1, input2) => {
+  const key = Math.floor(program[currentIndex] / 100) * 100;
+  return modeType[key](input1, input2, program);
 };
 
-export const executeInstruction = (
-  code,
-  opCode,
-  index,
-  count,
-  phase,
-  input,
-) => {
-  const [int1, int2] = findMode(code, index);
-  if (opCode === "halt") return;
-  return opCode(index, int1, int2, code, count, phase, input);
+const createComputer = (program) => {
+  return {
+    program,
+    iteration: 1,
+    currentIndex: 0,
+    isHalted: false,
+  };
 };
 
-export const evaluateOperation = (code, i, count, phase, input) => {
-  const op = opcodes[+code[i] % 100];
+const executeOpCode = (computer, opCode, input, phase) => {
+  const [input1, input2, output] = computer.program.slice(
+    computer.currentIndex + 1,
+    computer.currentIndex + 4,
+  );
 
-  if (op !== "halt") {
-    i = executeInstruction(code, op, i, count, phase, input);
+  const [int1, int2] = findMode(
+    computer.program,
+    computer.currentIndex,
+    input1,
+    input2,
+  );
+
+  if (opCode === 3) {
+    return OPCODES[opCode](computer, input, phase);
   }
 
-  return [op, i];
+  return OPCODES[opCode](computer, int1, int2, output);
 };
 
-export const evaluateIntCode = (intCode, count, phase, input = 0) => {
-  const code = intCode.split(",");
-  let { index, opCode } = { index: 0, opCode: "" };
+const stepForward = (computer, input, phase) => {
+  const { program, currentIndex } = computer;
+  const opCode = program[currentIndex] % 100;
 
-  while (opCode !== "halt") {
-    const [op, i] = evaluateOperation(code, index, count, phase, input);
-    index = i;
-    opCode = op;
+  if (opCode === 99) {
+    computer.isHalted = true;
+    return computer;
+  } else {
+    executeOpCode(computer, opCode, input, phase);
   }
 
-  return code.join(",");
+  return computer;
 };
+
+const execute = (computer, input, phase) => {
+  while (!computer.isHalted) {
+    stepForward(computer, input, phase);
+  }
+
+  return computer;
+};
+
+const alarmAssist = (input, inputVal, phase) => {
+  const program = parse(input);
+  const computer = createComputer(program);
+  const currentState = execute(computer, inputVal, phase);
+  return currentState.output;
+};
+
+export const test = (program, phase, input = 0) => {
+  const output1 = alarmAssist(program, input, +phase[0]);
+  const output2 = alarmAssist(program, output1, +phase[1]);
+  const output3 = alarmAssist(program, output2, +phase[2]);
+  const output4 = alarmAssist(program, output3, +phase[3]);
+  return alarmAssist(program, output4, +phase[4]);
+}
 
 const findPhaseCombination = () => {
   const phase = ["0", "1", "2", "3", "4"];
@@ -132,17 +160,7 @@ const findPhaseCombination = () => {
   return array.filter((x) => phase.every((y) => x.includes(y)));
 };
 
-export const amplifier = (intCode) => {
+export const amplifier = (input) => {
   const phase = findPhaseCombination();
-  const array = []
-  for (let i = 0; i < phase.length; i++) {
-    const element = phase[i];
-    const count = [0, 0];
-    for (let j = 0; j < 5; j++) {
-      count[0] = 0;
-      evaluateIntCode(intCode, count, +element[j], count[1]);
-    }
-    array.push(count[1]);
-  }
-  return array.sort((a, b) => b - a)[0];
+  return phase.map(x => test(input, x)).sort((a, b) => b - a)[0];
 }

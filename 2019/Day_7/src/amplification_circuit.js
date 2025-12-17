@@ -19,8 +19,9 @@ const takeInput = (computer, input, phase) => {
 };
 
 const print = (computer, input1) => {
-  console.log(input1);
+  // console.log(input1);
   computer.output = input1;
+  computer.pause = true;
   computer.currentIndex += 2;
   return computer;
 };
@@ -121,15 +122,15 @@ const stepForward = (computer, input, phase) => {
   if (opCode === 99) {
     computer.isHalted = true;
     return computer;
-  } else {
-    executeOpCode(computer, opCode, input, phase);
   }
+
+  executeOpCode(computer, opCode, input, phase);
 
   return computer;
 };
 
 const execute = (computer, input, phase) => {
-  while (!computer.isHalted) {
+  while (!computer.isHalted && !computer.pause) {
     stepForward(computer, input, phase);
   }
 
@@ -140,22 +141,44 @@ const alarmAssist = (input, inputVal, phase) => {
   const program = parse(input);
   const computer = createComputer(program);
   const currentState = execute(computer, inputVal, phase);
-  return currentState.output;
+  return currentState;
 };
 
-export const test = (program, phase, input = 0) => {
-  const output1 = alarmAssist(program, input, +phase[0]);
-  const output2 = alarmAssist(program, output1, +phase[1]);
-  const output3 = alarmAssist(program, output2, +phase[2]);
-  const output4 = alarmAssist(program, output3, +phase[3]);
-  return alarmAssist(program, output4, +phase[4]);
+const feedbackLoop = (currentStates) => {
+  let input = currentStates[currentStates.length - 1].output;
+  const currentStatus = [];
+  
+  for (const i in currentStates) {
+    if (!currentStates[i].isHalted) {
+      currentStates[i].pause = false;
+      currentStatus.push(execute(currentStates[i], input));
+      input = currentStatus[i].output;
+    }
+  }
+
+  if (currentStatus[currentStatus.length - 1].isHalted) {
+      return currentStatus[currentStatus.length - 1].output;
+  }
+  
+  return feedbackLoop(currentStatus)
+}
+
+export const test = (program, phase) => {
+  const currentStates = [];
+
+  for (let i = 0; i < 5; i++) {
+    const input = i === 0 ? 0 : currentStates[i - 1].output;
+    const currentState = alarmAssist(program, input, +phase[i]);
+    currentStates.push(currentState);
+  }
+  return feedbackLoop(currentStates);
 }
 
 const findPhaseCombination = () => {
-  const phase = ["0", "1", "2", "3", "4"];
+  const phase = ["9", "8", "7", "6", "5"];
   const array = [];
-  for (let i = 1234; i <= 43210; i++) {
-    array.push(`${i}`.padStart(5, "0"));
+  for (let i = 56789; i <= 98765; i++) {
+    array.push(`${i}`);
   }
   return array.filter((x) => phase.every((y) => x.includes(y)));
 };

@@ -1,3 +1,5 @@
+import { permutations } from "@std/collections";
+
 const add = (computer, input1, input2, output) => {
   computer.program[output] = input1 + input2;
   computer.currentIndex += 4;
